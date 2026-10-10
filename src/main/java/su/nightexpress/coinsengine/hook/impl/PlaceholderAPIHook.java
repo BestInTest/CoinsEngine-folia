@@ -50,11 +50,12 @@ public class PlaceholderAPIHook {
 
     private static class Expansion extends PlaceholderExpansion {
 
-        private static final DecimalFormat RAW_FORMAT = new DecimalFormat("#");
-
-        static {
-            RAW_FORMAT.setMaximumFractionDigits(8);
-        }
+        // DecimalFormat is not thread safe, so every thread gets its own instance
+        private static final ThreadLocal<DecimalFormat> RAW_FORMAT = ThreadLocal.withInitial(() -> {
+            DecimalFormat format = new DecimalFormat("#");
+            format.setMaximumFractionDigits(8);
+            return format;
+        });
 
         private final CoinsEnginePlugin              plugin;
         private final Map<String, PlayerPlaceholder> playerPlaceholders;
@@ -121,7 +122,7 @@ public class PlaceholderAPIHook {
 
             this.playerPlaceholders.put("server_balance_legacy", (player, user, currency) -> NightMessage.asLegacy(currency.format(plugin.getTopManager().orElseThrow().getTotalBalance(currency))));
 
-            this.playerPlaceholders.put("server_balance_raw", (player, user, currency) -> RAW_FORMAT.format(plugin.getTopManager().orElseThrow().getTotalBalance(currency)));
+            this.playerPlaceholders.put("server_balance_raw", (player, user, currency) -> RAW_FORMAT.get().format(plugin.getTopManager().orElseThrow().getTotalBalance(currency)));
 
             this.playerPlaceholders.put("server_balance", (player, user, currency) -> currency.format(plugin.getTopManager().orElseThrow().getTotalBalance(currency)));
 
@@ -133,7 +134,7 @@ public class PlaceholderAPIHook {
 
             this.playerPlaceholders.put("balance_clean", (player, user, currency) -> NightMessage.stripTags(currency.format(user.getBalance(currency))));
             this.playerPlaceholders.put("balance_legacy", (player, user, currency) -> NightMessage.asLegacy(currency.format(user.getBalance(currency))));
-            this.playerPlaceholders.put("balance_raw", (player, user, currency) -> NightMessage.stripTags(RAW_FORMAT.format(currency.floorIfNeeded(user.getBalance(currency)))));
+            this.playerPlaceholders.put("balance_raw", (player, user, currency) -> NightMessage.stripTags(RAW_FORMAT.get().format(currency.floorIfNeeded(user.getBalance(currency)))));
             this.playerPlaceholders.put("balance", (player, user, currency) -> currency.format(user.getBalance(currency)));
         }
 
